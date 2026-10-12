@@ -1,0 +1,10 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import{toStagingQueueCandidate}from '../src/queue-candidate.mjs';
+import{authorizeStagingSubmission}from '../src/submission-gate.mjs';
+const p={tenant_id:'666f23bf-61bd-4be0-b5cb-4872e04fad9b',project_id:'test-project',template_id:'roofing-synthetic-v1',template_sha:'a'.repeat(40),idempotency_key:'staging-only-001'};
+const c=toStagingQueueCandidate(p,{actor:'agent:x1:operator',tenantAuthorized:true,sourceApproved:true,capabilityApproved:true});
+const proof={environment:'preview',workerId:'x1-worker-1',tenantMatch:true,actorAuthorized:true,sourceVerified:true,workerRegistered:true,workerCredentialBound:true,controllerAllowsLease:true,independentValidatorReady:true,idempotencyAvailable:true};
+test('fails closed with no live preflight proof',()=>assert.throws(()=>authorizeStagingSubmission(c),/PROOF_REQUIRED/));
+test('rejects missing lease controller approval',()=>assert.throws(()=>authorizeStagingSubmission(c,{...proof,controllerAllowsLease:false}),/SUBMISSION_GATE/));
+test('rejects production environment',()=>assert.throws(()=>authorizeStagingSubmission(c,{...proof,environment:'production'}),/NON_PRODUCTION_ONLY/));
+test('returns existing enqueue fields only after all gates',()=>{const x=authorizeStagingSubmission(c,proof);assert.equal(x.action_class,'NON_PRODUCTION_MUTATION');assert.equal(x.status,'BLOCKED');assert.equal(x.dispatchable,undefined);assert.equal(x.payload.release_mode,'preview_only');});
