@@ -1,0 +1,5 @@
+
+import {createHash,timingSafeEqual} from 'node:crypto';
+export function auth(header,secret){if(!secret||typeof header!=='string'||!header.startsWith('Bearer '))return false;return timingSafeEqual(createHash('sha256').update(header.slice(7)).digest(),createHash('sha256').update(secret).digest());}
+export function parsePacket(p){if(!p||typeof p!=='object'||Array.isArray(p))throw Error('INVALID_PACKET');if(!['mission.draft','pack.submit'].includes(p.action))throw Error('INVALID_ACTION');for(const k of ['tenant_id','project_id','idempotency_key'])if(typeof p[k]!=='string'||p[k].length<3||p[k].length>120)throw Error('INVALID_'+k.toUpperCase());if(!p.payload||typeof p.payload!=='object'||Array.isArray(p.payload))throw Error('INVALID_PAYLOAD');if(p.release_requested)throw Error('PROTECTED_ACTION');return {...p,review_state:'PENDING_REVIEW',action_class:'DRAFT'};}
+export function draftReceipt(p){return{status:'PENDING_REVIEW',tenant_id:p.tenant_id,project_id:p.project_id,idempotency_key:p.idempotency_key,hash:createHash('sha256').update(JSON.stringify(p)).digest('hex'),queued:false,executed:false,validated:false};}
