@@ -8,6 +8,6 @@ export function authorizeStagingSubmission(candidate, proof){
   if(!['preview','development'].includes(proof.environment))throw Error('NON_PRODUCTION_ONLY');
   if(typeof proof.workerId!=='string'||proof.workerId.length<3)throw Error('WORKER_ID_REQUIRED');
   if(candidate.payload.release_mode!=='preview_only'||candidate.payload.no_customer_data!==true||candidate.payload.requires_domain_purchase!==false)throw Error('UNSAFE_PAYLOAD');
-  const {dispatchable,status,...work}=candidate;
+  const {dispatchable,...work}=candidate;
   return Object.freeze({...work,approval_reference:proof.approvalReference??'STAGING_CANARY_ONLY'});
 }
